@@ -1,0 +1,23 @@
+title: Dath Fionn
+description: A personal blog
+url: "https://dathfionn.ie"
+baseurl: ""
+
+# Author info
+author:
+  name: Your Name
+
+# Build settings
+markdown: Kramdown
+permalink: /:categories/:title/
+
+# Plugins
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+
+# Exclude from build
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - README.md

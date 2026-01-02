@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% if page.title %}{{ page.title }} | {% endif %}{{ site.title }}</title>
+  <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
+  {% feed_meta %}
+  {% seo %}
+  <script>
+    (function() {
+      var theme = localStorage.getItem('theme');
+      if (theme) document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+</head>
+<body>
+  <header>
+    <nav class="toggle" data-active="{% if page.url == '/rambels/' or page.categories contains 'rambels' %}rambels{% else %}people{% endif %}">
+      <div class="toggle-slider"></div>
+      <a href="{{ '/people/' | relative_url }}">People</a>
+      <a href="{{ '/rambels/' | relative_url }}">rambels</a>
+    </nav>
+  </header>
+
+  <main>
+    {{ content }}
+  </main>
+
+  <button class="theme-toggle" aria-label="Toggle theme">
+    <span class="icon-sun">&#9788;</span>
+    <span class="icon-moon">&#9789;</span>
+  </button>
+
+  <div class="image-overlay" id="imageOverlay">
+    <img src="" alt="" id="overlayImage">
+  </div>
+
+  <div class="link-overlay" id="linkOverlay">
+    <img src="" alt="" id="overlayLinkImage">
+  </div>
+
+  <script>
+    (function() {
+      var toggle = document.querySelector('.theme-toggle');
+      var html = document.documentElement;
+      toggle.addEventListener('click', function() {
+        var current = html.getAttribute('data-theme');
+        var next = current === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+      });
+
+      // Hold to view images
+      var overlay = document.getElementById('imageOverlay');
+      var overlayImg = document.getElementById('overlayImage');
+
+      document.querySelectorAll('.hold-to-view').forEach(function(img) {
+        function showOverlay(e) {
+          e.preventDefault();
+          overlayImg.src = img.src;
+          overlay.classList.add('active');
+        }
+        function hideOverlay() {
+          overlay.classList.remove('active');
+        }
+
+        img.addEventListener('mousedown', showOverlay);
+        img.addEventListener('mouseup', hideOverlay);
+        img.addEventListener('mouseleave', hideOverlay);
+        img.addEventListener('touchstart', showOverlay);
+        img.addEventListener('touchend', hideOverlay);
+      });
+
+      // Hold to show images
+      var linkOverlay = document.getElementById('linkOverlay');
+      var overlayLinkImg = document.getElementById('overlayLinkImage');
+
+      function hideLinkOverlay() {
+        linkOverlay.classList.remove('active');
+        overlayLinkImg.src = '';
+      }
+
+      document.addEventListener('mouseup', hideLinkOverlay);
+      document.addEventListener('touchend', hideLinkOverlay);
+
+      document.querySelectorAll('.hold-to-show').forEach(function(el) {
+        function showLink(e) {
+          e.preventDefault();
+          var img = el.getAttribute('data-img');
+          if (img) {
+            overlayLinkImg.src = img;
+            linkOverlay.classList.add('active');
+          }
+        }
+
+        el.addEventListener('mousedown', showLink);
+        el.addEventListener('touchstart', showLink);
+      });
+    })();
+  </script>
+</body>
+</html>
