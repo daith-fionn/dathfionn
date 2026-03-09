@@ -28,8 +28,8 @@
   </main>
 
   <button class="theme-toggle" aria-label="Toggle theme">
-    <span class="icon-sun">&#9788;</span>
-    <span class="icon-moon">&#9789;</span>
+    <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
   </button>
 
   <div class="image-overlay" id="imageOverlay">
@@ -97,6 +97,243 @@
         el.addEventListener('mousedown', showLink);
         el.addEventListener('touchstart', showLink);
       });
+    })();
+
+    // Arc scroll UI for mobile
+    (function() {
+      if (window.innerWidth > 480) return;
+
+      var arcContainer = document.querySelector('.arc-items');
+      if (!arcContainer) return;
+
+      var items = Array.from(arcContainer.querySelectorAll('.arc-item'));
+      var contentArea = document.getElementById('arc-content-area');
+      if (items.length === 0) return;
+
+      // Arc geometry — very large radius so curve is subtle, center far off to the right
+      var vw = window.innerWidth;
+      var vh = window.innerHeight;
+      var radius = vw * 4;
+      var centerX = vw * 0.5 + radius;
+      var centerY = vh * 0.88;
+      var angleSep = 2.2; // small angle = gentle curve with big radius
+
+      // The "sweet spot" angle where selected item sits
+      var sweetAngle = 185;
+
+      // Scroll state — currentIndex is float, snaps to integers
+      var currentPos = 0; // float index (0 = first item selected)
+      var isDragging = false;
+      var startY = 0;
+      var startPos = 0;
+      var velocity = 0;
+      var lastY = 0;
+      var lastTime = 0;
+      var animFrame = null;
+      var lastSelectedIndex = -1;
+
+      function clamp(val, min, max) {
+        return Math.max(min, Math.min(max, val));
+      }
+
+      function render() {
+        var selected = Math.round(clamp(currentPos, 0, items.length - 1));
+
+        items.forEach(function(item, i) {
+          // Each item's angle on the arc
+          var offset = i - currentPos;
+          var angle = sweetAngle + offset * angleSep;
+          var rad = angle * Math.PI / 180;
+
+          var x = centerX + radius * Math.cos(rad);
+          var y = centerY + radius * Math.sin(rad);
+
+          // Rotate text tangent to the arc — subtract 180 so text reads left-to-right
+          var tangent = angle - 180;
+
+          item.style.transform = 'translate(-50%, -50%) rotate(' + tangent + 'deg)';
+          item.style.left = x + 'px';
+          item.style.top = y + 'px';
+
+          // Styling based on distance from selection
+          var dist = Math.abs(i - currentPos);
+          var isSelected = (i === selected);
+          item.classList.toggle('selected', isSelected);
+          item.classList.toggle('near', !isSelected && dist < 2.5);
+
+          // Fade out distant items
+          if (!isSelected && dist >= 2.5) {
+            item.style.opacity = Math.max(0, 1 - dist * 0.2);
+          } else {
+            item.style.opacity = '';
+          }
+        });
+
+        // Only update content when selection changes
+        if (selected !== lastSelectedIndex) {
+          lastSelectedIndex = selected;
+          var contentId = items[selected].getAttribute('data-content-id');
+          var source = document.getElementById(contentId);
+          if (source && contentArea) {
+            contentArea.innerHTML = source.innerHTML;
+          }
+        }
+      }
+
+      function snapTo(targetPos) {
+        cancelAnimationFrame(animFrame);
+        var target = Math.round(clamp(targetPos, 0, items.length - 1));
+
+        function step() {
+          var diff = target - currentPos;
+          if (Math.abs(diff) < 0.005) {
+            currentPos = target;
+            render();
+            return;
+          }
+          currentPos += diff * 0.18;
+          render();
+          animFrame = requestAnimationFrame(step);
+        }
+        step();
+      }
+
+      function coast() {
+        cancelAnimationFrame(animFrame);
+
+        function step() {
+          if (Math.abs(velocity) < 0.01) {
+            snapTo(currentPos);
+            return;
+          }
+          velocity *= 0.88;
+          currentPos += velocity;
+          // Soft clamp with rubber band
+          if (currentPos < -0.5) { currentPos = -0.5; velocity = 0; }
+          if (currentPos > items.length - 0.5) { currentPos = items.length - 0.5; velocity = 0; }
+          render();
+          animFrame = requestAnimationFrame(step);
+        }
+        step();
+      }
+
+      // Touch events on the whole arc area
+      arcContainer.addEventListener('touchstart', function(e) {
+        isDragging = true;
+        cancelAnimationFrame(animFrame);
+        startY = e.touches[0].clientY;
+        startPos = currentPos;
+        velocity = 0;
+        lastY = startY;
+        lastTime = Date.now();
+      }, { passive: true });
+
+      arcContainer.addEventListener('touchmove', function(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+
+        var y = e.touches[0].clientY;
+        var dy = y - startY;
+
+        // Convert pixels to index units — swipe down = go forward (higher index)
+        // Sensitivity: ~80px per item
+        currentPos = startPos + dy / 80;
+
+        // Rubber band at edges
+        if (currentPos < 0) currentPos = currentPos * 0.3;
+        if (currentPos > items.length - 1) {
+          currentPos = (items.length - 1) + (currentPos - (items.length - 1)) * 0.3;
+        }
+
+        // Track velocity
+        var now = Date.now();
+        var dt = now - lastTime;
+        if (dt > 0) {
+          velocity = (y - lastY) / 80 / (dt / 16);
+          lastY = y;
+          lastTime = now;
+        }
+
+        render();
+      }, { passive: false });
+
+      arcContainer.addEventListener('touchend', function() {
+        isDragging = false;
+        if (Math.abs(velocity) > 0.08) {
+          coast();
+        } else {
+          snapTo(currentPos);
+        }
+      }, { passive: true });
+
+      // Tap to navigate
+      items.forEach(function(item) {
+        var tapStart = 0;
+        var tapY = 0;
+        item.addEventListener('touchstart', function(e) {
+          tapStart = Date.now();
+          tapY = e.touches[0].clientY;
+        }, { passive: true });
+        item.addEventListener('touchend', function(e) {
+          var elapsed = Date.now() - tapStart;
+          var moved = Math.abs(e.changedTouches[0].clientY - tapY);
+          if (elapsed < 250 && moved < 8) {
+            if (item.classList.contains('selected')) {
+              var href = item.getAttribute('data-href');
+              if (href) window.location.href = href;
+            } else {
+              // Tap non-selected item: scroll to it
+              var idx = parseInt(item.getAttribute('data-index'));
+              snapTo(idx);
+            }
+          }
+        }, { passive: true });
+      });
+
+      // Also support mouse drag for devtools testing
+      arcContainer.addEventListener('mousedown', function(e) {
+        isDragging = true;
+        cancelAnimationFrame(animFrame);
+        startY = e.clientY;
+        startPos = currentPos;
+        velocity = 0;
+        lastY = startY;
+        lastTime = Date.now();
+        e.preventDefault();
+      });
+
+      window.addEventListener('mousemove', function(e) {
+        if (!isDragging) return;
+        var y = e.clientY;
+        var dy = y - startY;
+        currentPos = startPos + dy / 80;
+        if (currentPos < 0) currentPos = currentPos * 0.3;
+        if (currentPos > items.length - 1) {
+          currentPos = (items.length - 1) + (currentPos - (items.length - 1)) * 0.3;
+        }
+        var now = Date.now();
+        var dt = now - lastTime;
+        if (dt > 0) {
+          velocity = (y - lastY) / 80 / (dt / 16);
+          lastY = y;
+          lastTime = now;
+        }
+        render();
+      });
+
+      window.addEventListener('mouseup', function() {
+        if (!isDragging) return;
+        isDragging = false;
+        if (Math.abs(velocity) > 0.08) {
+          coast();
+        } else {
+          snapTo(currentPos);
+        }
+      });
+
+      // Initial render
+      currentPos = 0;
+      render();
     })();
   </script>
 </body>

@@ -239,8 +239,12 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  padding: 0;
   z-index: 1000;
+}
+
+.theme-toggle svg {
+  display: block;
 }
 
 .theme-toggle:hover {
@@ -336,13 +340,122 @@ a {
   margin: 20px 0;
 }
 
+/* Arc scroll - hidden on desktop */
+.arc-scroll {
+  display: none;
+}
+
+.arc-post-content {
+  display: none !important;
+}
+
 /* Mobile */
 @media (max-width: 480px) {
   body {
-    padding: 40px 20px;
+    padding: 20px 20px 80px;
+    overflow: hidden;
   }
 
-  nav {
-    gap: 32px;
+  /* Move header/nav to bottom, in front of everything */
+  header {
+    position: fixed;
+    bottom: 32px;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    margin-bottom: 0;
+    display: flex;
+    justify-content: center;
+  }
+
+  /* Hide flat list on mobile, show arc */
+  .post-list {
+    display: none;
+  }
+
+  .arc-scroll {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 10;
+    overflow: hidden;
+  }
+
+  .arc-content-area {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    right: 20px;
+    bottom: 55%;
+    overflow-y: auto;
+    color: var(--text);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .arc-content-area h2 {
+    font-size: 1.2rem;
+    margin-bottom: 0.5em;
+  }
+
+  .arc-content-area p {
+    margin-bottom: 1em;
+  }
+
+  .arc-items {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+    overflow: hidden;
+  }
+
+  .arc-item {
+    position: absolute;
+    left: 0;
+    top: 0;
+    transform-origin: center center;
+    white-space: nowrap;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 0.95rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    padding: 6px 14px;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.15s, color 0.15s;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .arc-item.selected {
+    color: #00ffff;
+    font-weight: 700;
+    font-size: 1.1rem;
+    opacity: 1;
+    text-shadow: 0 0 16px rgba(0, 255, 255, 0.6);
+  }
+
+  .arc-item.near {
+    opacity: 0.75;
+  }
+
+  [data-theme="light"] .arc-item.selected {
+    color: #007799;
+    text-shadow: 0 0 10px rgba(0, 119, 153, 0.3);
+  }
+
+  /* Theme toggle on same row as nav, left side */
+  .theme-toggle {
+    position: fixed;
+    bottom: 36px;
+    left: 20px;
+    right: auto;
   }
 }

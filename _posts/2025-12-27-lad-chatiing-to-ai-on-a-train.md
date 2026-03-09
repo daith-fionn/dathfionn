@@ -3,6 +3,7 @@ layout: post
 title: "Lad chatiing to AI on a train"
 date: 2025-12-27
 categories: people
+short_title: "AI lad on train"
 permalink: /people/man talking to what seems to be a ai on the train/
 ---
 
